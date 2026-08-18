@@ -1,0 +1,41 @@
+# --- Cargo / Rust build artifacts ---
+/target
+# Cargo.lock is committed for this binary application (reproducible builds).
+# Re-add it here only if this ever becomes a library crate.
+
+# --- Rust tooling / caches ---
+/*.pdb
+*-debug
+/apps/*
+out/
+debug/
+profile/
+
+# --- Environment & secrets ---
+.env
+.env.*
+*.local
+
+# --- IDE / editor ---
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+*.iml
+.DS_Store
+Thumbs.db
+
+# --- Logs ---
+*.log
+logs/
+
+# --- CoreLink app-specific data ---
+# Config written by the GUI at runtime (do not commit user profiles)
+config.json
+
+# Phase 5: SQLite telemetry database (incl. WAL/rollback sidecars)
+*.db
+*.sqlite
+*.sqlite3
+*.db-wal
+*.db-shm
