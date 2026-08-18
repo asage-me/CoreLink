@@ -5,8 +5,8 @@
 
 ## 2. Config value types + validation
 
-- [ ] 2.1 Serde types per design D8: `FanProfileConfig` (mode, static percent, curve points, setpoint, gains, min_duty, fold, slew rates, comfort sources, tripwire refs), `TripwireConfig`, `CurvePoint`, `PidGains`, `FoldRule`, `SlewRates`
-- [ ] 2.2 Pure `validate(&FanProfileConfig) -> ValidationErrors` covering mode-field coherence (curve requires ≥2 distinct-temp points; static_percent must not declare comfort sources but may declare tripwire/display; target_temp requires setpoint + gains; device_memory needs no sensor declarations), tau/hysteresis/rates/min_duty bounds; unit tests for every rejection and the happy paths (spec: *Mode is exclusive*, *Missing comfort_driver rejected*)
+- [x] 2.1 Serde types per design D8: `FanProfileConfig` (mode, static percent, curve points, setpoint, gains, min_duty, fold, slew rates, comfort sources, tripwire refs), `TripwireConfig`, `CurvePoint`, `PidGains`, `FoldRule`, `SlewRates`
+- [x] 2.2 Pure `validate(&FanProfileConfig) -> ValidationErrors` covering mode-field coherence (curve requires ≥2 distinct-temp points; static_percent must not declare comfort sources but may declare tripwire/display; target_temp requires setpoint + gains; device_memory needs no sensor declarations), tau/hysteresis/rates/min_duty bounds; unit tests for every rejection and the happy paths (spec: *Mode is exclusive*, *Missing comfort_driver rejected*)
 
 ## 3. EMA module
 

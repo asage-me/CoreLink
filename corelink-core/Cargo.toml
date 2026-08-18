@@ -9,3 +9,4 @@ readme = "README.md"
 serde = { version = "1", features = ["derive"] }
 
 [dev-dependencies]
+serde_json = "1"
