@@ -1,0 +1,11 @@
+[package]
+name = "corelink-core"
+version = "0.1.0"
+edition = "2021"
+description = "Pure fan-control core for CoreLink: no I/O, injected timestamps, per-profile tick pipeline"
+readme = "README.md"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]

@@ -1,7 +1,7 @@
 ## 1. Workspace scaffolding
 
-- [ ] 1.1 `git init` the repo and create the Cargo workspace (root `Cargo.toml` with `corelink-core` member)
-- [ ] 1.2 Create `corelink-core` crate with module skeleton (`lib.rs`, `config.rs`, `ema.rs`, `curve.rs`, `pid.rs`, `slew.rs`, `tripwire.rs`, `profile.rs`) and dev-dependency-free `Cargo.toml` (only `serde` with derive)
+- [x] 1.1 `git init` the repo and create the Cargo workspace (root `Cargo.toml` with `corelink-core` member)
+- [x] 1.2 Create `corelink-core` crate with module skeleton (`lib.rs`, `config.rs`, `ema.rs`, `curve.rs`, `pid.rs`, `slew.rs`, `tripwire.rs`, `profile.rs`) and dev-dependency-free `Cargo.toml` (only `serde` with derive)
 
 ## 2. Config value types + validation
 
