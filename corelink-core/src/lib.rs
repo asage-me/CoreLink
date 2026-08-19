@@ -18,6 +18,7 @@
 pub mod config;
 pub mod curve;
 pub mod ema;
+pub mod fold;
 pub mod pid;
 pub mod profile;
 pub mod slew;
