@@ -43,12 +43,12 @@
 
 ## 9. Profile pipeline (the `tick()`)
 
-- [ ] 9.1 `ProfileHandle` + `TickInput`/`TickResult`/`Outcome` types per design D1; no-command vs command vs failsafe outcomes
-- [ ] 9.2 Mode gate + per-mode controllers: `static_percent` (constant duty; with declared tripwire(s) the protection floor can raise it while latched; with none, constant and fault-less — no failsafe path at all), `curve` (lookup, no integrator), `target_temp` (PID), `device_memory` (always NoCommand; faults become report-only, spec *device_memory never commands*)
-- [ ] 9.3 Health/cold-start state machine per design D7: first seed tick → NoCommand withhold; required source missing/stale → failsafe 100%; never-arrived sole source → 100% after cold start; cold start with an absent-but-other-fresh source (spec: *Required-vs-Optional*, *Cold-Start* scenarios)
-- [ ] 9.4 Pipeline ordering per design D6: health → filter updates → fold → mode controller → protection floor (`max` of latched tripwires, spec *Protection Floor*) → min-duty floor (exempt: static, failsafe) → slew → emit
-- [ ] 9.5 Soft tripwire-loss handling (spec: *Soft Handling of a Lost Tripwire Source*: no 100%, soft fault, last-known latch state holds the floor, unlatched-absent applies no floor)
-- [ ] 9.6 Fault events attached to `TickResult.faults` for: missing/stale/never-arrived comfort source, lost tripwire, tick-gap clamp — never silent (spec: *Fail-Safe to 100%*)
+- [x] 9.1 `ProfileHandle` + `TickInput`/`TickResult`/`Outcome` types per design D1; no-command vs command vs failsafe outcomes
+- [x] 9.2 Mode gate + per-mode controllers: `static_percent` (constant duty; with declared tripwire(s) the protection floor can raise it while latched; with none, constant and fault-less — no failsafe path at all), `curve` (lookup, no integrator), `target_temp` (PID), `device_memory` (always NoCommand; faults become report-only, spec *device_memory never commands*)
+- [x] 9.3 Health/cold-start state machine per design D7: first seed tick → NoCommand withhold; required source missing/stale → failsafe 100%; never-arrived sole source → 100% after cold start; cold start with an absent-but-other-fresh source (spec: *Required-vs-Optional*, *Cold-Start* scenarios)
+- [x] 9.4 Pipeline ordering per design D6: health → filter updates → fold → mode controller → protection floor (`max` of latched tripwires, spec *Protection Floor*) → min-duty floor (exempt: static, failsafe) → slew → emit
+- [x] 9.5 Soft tripwire-loss handling (spec: *Soft Handling of a Lost Tripwire Source*: no 100%, soft fault, last-known latch state holds the floor, unlatched-absent applies no floor)
+- [x] 9.6 Fault events attached to `TickResult.faults` for: missing/stale/never-arrived comfort source, lost tripwire, tick-gap clamp — never silent (spec: *Fail-Safe to 100%*)
 
 ## 10. Integration + determinism tests
 
