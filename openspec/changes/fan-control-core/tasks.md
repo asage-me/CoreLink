@@ -52,8 +52,8 @@
 
 ## 10. Integration + determinism tests
 
-- [ ] 10.1 End-to-end scripted tick sequences (no hardware): cold start → steady curve operation → tripwire latch → protection floor holds while comfort drops → tripwire clears → tripwire source goes lost (soft) → comfort source stale → failsafe 100%
-- [ ] 10.2 Per-port isolation test: profile A failsafe, profile B unchanged, same tick (spec: *Per-port isolation*)
-- [ ] 10.3 Determinism test: replay identical inputs from identical state → identical `TickResult`s (spec: *Deterministic on identical input*)
-- [ ] 10.4 Failsafe bypass test: 20 % commanded + 1 s @ 20 %/s up → 100 % (not 40 %) on the failsafe tick (spec: *Fail-safe bypasses the slew limiter*)
-- [ ] 10.5 Full `cargo test -p corelink-core` green + `cargo clippy` clean
+- [x] 10.1 End-to-end scripted tick sequences (no hardware): cold start → steady curve operation → tripwire latch → protection floor holds while comfort drops → tripwire clears → tripwire source goes lost (soft) → comfort source stale → failsafe 100%
+- [x] 10.2 Per-port isolation test: profile A failsafe, profile B unchanged, same tick (spec: *Per-port isolation*)
+- [x] 10.3 Determinism test: replay identical inputs from identical state → identical `TickResult`s (spec: *Deterministic on identical input*)
+- [x] 10.4 Failsafe bypass test: 20 % commanded + 1 s @ 20 %/s up → 100 % (not 40 %) on the failsafe tick (spec: *Fail-safe bypasses the slew limiter*)
+- [x] 10.5 Full `cargo test -p corelink-core` green + `cargo clippy` clean
