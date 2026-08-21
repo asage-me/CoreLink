@@ -1,0 +1,38 @@
+## Why
+
+Phase 1 (fan control) is done and archived; the next plan phase is **Power Monitoring & Telemetry**: poll the HX1500i PSU (voltages, currents, wattages, temps). Exploration (2026-09) pinned the device protocol by cross-verifying two independent implementations of it — OpenLinkHub's `psuhid` driver (proven on this exact device family) and the Linux mainline `corsair-psu` hwmon driver (the very interface plan.md says to check *first*).
+
+The one thing a wrong implementation here gets **silently wrong** is value scaling: the PSU reports every metric as an 11-bit "LINEAR11" signed-magnitude fixed-point value plus per-register scale, and there is no in-band units metadata in the reply. A 10× or ×1000 scale mistake would show as plausible-looking numbers (12 V reading as 1.2 V) that no runtime check would flag. The decode must therefore be exact, unit-explicit, and covered by golden tests against known reference values — not eyeballed on first live run.
+
+The same "pure logic, injected I/O" split that made Phase 1 correct-by-construction applies: packet construction, echo validation, decoding, and plausibility checks are deterministic byte-level logic and belong in a fully unit-testable core; the USB/hwmon I/O, 1 Hz poll loop, and staleness handling belong in the daemon (a later change).
+
+## What Changes
+
+- **New zero-/low-dependency pure Rust crate `corelink-psu`** holding the entire HX1500i telemetry logic that does not touch hardware. No I/O, no threads, no logging. It consumes raw 64-byte HID replies or hwmon channel values and emits one normalized snapshot.
+- **HID transport primitives as pure functions.** 64-byte request construction (`[u8; 64]`): init (`[0xFE, 0x03, 0]` — note the swapped length/command bytes), read (`[0x03, cmd, 0]`), rail select (`[0x02, 0x00, rail]`; rail 0 = +12 V, 1 = +5 V, 2 = +3.3 V). Response **echo validation** with three typed verdicts: `matched` (proceed), `unsupported` (echo command byte is 0 — the deterministic kernel-documented signal for "device does not implement this command"; never retry), `mismatch` (reply does not echo the request — transient or concurrent client, e.g. iCUE running at the same time; retry budget then a fault, never silently accept).
+- **Exact SMBus LINEAR11 decode with an explicit per-register unit table.** Raw u16 (little-endian at reply offset 2–3) → 11-bit two's-complement mantissa × 2^(11-bit two's-complement exponent) in base units, then per-register scaling: volts/amps/watts in milli-units (÷1000), fan RPM in 1×, temperatures in deci-kelvin (×0.1 K, −273.15 for °C). The decode is the load-bearing piece and is golden-tested against values computed independently from the Linux driver's C code, not from OpenLinkHub's Go port (whose unsigned-mantissa shortcut is a latent bug for negative mantissas, irrelevant to PSU values but not what we copy).
+- **One normalized snapshot type, two source paths, guaranteed-identical semantics.** `PsuSnapshot` holds per-field `Option` values in each field's native unit (V, A, W, °C, RPM) — a field that is unsupported, unread, or implausible is `None` **plus a typed event**, never `0.0`/garbage masquerading as data (input current is `None` on the HX1500i, which lacks 0x89, even in a healthy snapshot). The same type is produced from (a) raw HID LINEAR11 decoding and (b) `corsair-psu` hwmon channel mapping (in mV, curr mA, power µW, temp milli-°C, fan RPM, plus `_crit`/`_lcrit` thresholds); the hwmon path undoes exactly the kernel's ABI scale so both paths yield the same native-unit values. Path-agnostic normalization means "hwmon first, raw HID if unsupported" (plan.md) is a daemon-side transport choice that can never produce divergent numbers, and the two paths can be diffed on real hardware as a decode oracle. An optional observation-only fan-mode field (0xF0: automatic vs. fixed duty %) is read separately by the daemon and carried on the same snapshot type.
+- **Plausibility validation (silence must not mean fine).** Per-register sanity ranges (e.g. rail voltage 0–350 V, total power ≤ ~2× rated, temperature > 1 °C sanity gate the reference drivers also use) run over every `Some` value on every snapshot; a value in range but outside the register's physics produces a typed fault so a corrupted reply is loud, not plotted.
+- **Per-cycle poll plan as data.** The exact transfer sequence the daemon walks each cycle — init → fan (0x90) → temps (0x8D, 0x8E) → input voltage (0x88) → input current (0x89, support-probed: some models/units do not implement it) → total watts (0xEE) → for each rail: select + volts (0x8B) + amps (0x8C) + watts (0x96) — is emitted by the core as an inspectable plan, so the daemon cannot drift out of sync with what the core expects (and tests can assert the sequence, including the re-init cadence).
+- **Device identity and thresholds, init-once.** (vid, pid) → model table (HX1500i = 0x1b1c:0x1c1f, covering Legacy/2023/2025 series) with rated watts and rail set; product-string parsing (NUL-strip; 2023+ models merge vendor+product into one string — both layouts handled); stable device id derived from the parsed product string. Crit/lcrit thresholds (0x40/0x44/0x46/0x4F) captured at init into the snapshot's threshold area — self-describing limits for the GUI and the raw material for future PSU-temperature tripwires feeding fan profiles (plan item 5, many-to-many sensor topology).
+- **Strictly read-only.** This change issues **no writes to the PSU of any kind**. The kernel driver's own comment warns *"if configured wrong the PSU resets or shuts down"*; fan-mode/fan-PWM writes (0xF0/0x3B) exist in the protocol but are out of scope here (Phase 2 is monitoring; any future fan control is a separate, risk-analyzed change). Read-backs of fan mode (auto vs. fixed duty) and fan RPM are included as observation-only fields.
+- Upstream consumer (later change): `corelinkd`. It does hwmon-first probing (`/sys/class/hwmon/*/name` == `corsairpsu`), owns the hidapi handle and the 1 Hz loop, runs the poll plan, classifies `mismatch` retries, tracks per-field staleness, and feeds the snapshot to telemetry (Phase 5) and to fan-profile sensor sources (Phase 1 core, unchanged).
+
+## Capabilities
+
+### New Capabilities
+
+- `psu-telemetry`: pure HX1500i power-supply telemetry core — HID request construction, LINEAR11 decoding with per-register units, echo/unsupported/mismatch validation, per-cycle poll plan, plausibility-checked normalized snapshot (identical from hwmon or raw HID), and device identity/thresholds — with no I/O dependencies.
+
+### Modified Capabilities
+
+(none — `fan-control` is untouched; PSU readings join fan profiles only later, as *sensor sources* injected into the existing core's unchanged `Readings` interface, in the daemon change)
+
+## Impact
+
+- `Cargo.toml` (workspace root): add `corelink-psu` member.
+- `corelink-psu/` (new crate): packet, linear11, registers, poll-plan, snapshot, identity modules + unit tests (golden decode vectors, packet-byte asserts, echo-verdict cases, hwmon/RAW equivalence tests).
+- Dependencies: `serde` (snapshot + config value types, so the GUI/telemetry changes build against them) and `serde_json` as dev-dependency; no other dependencies.
+- No changes to `corelink-core` or Phase 1 artifacts.
+- Protocol reference (verified 2026-09): Linux `drivers/hwmon/corsair-psu.c` (mainline) and OpenLinkHub `src/devices/psuhid/psuhid.go` + `src/common/common.go` `FromLinear11`.
+- Plan terminology note: the plan's "raw PMBus-over-USB" is implemented as the device's actual proprietary 64-byte HID protocol, whose numeric payloads follow SMBus LINEAR11 formatting — same wire, precise name.
